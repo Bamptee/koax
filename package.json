@@ -1,6 +1,6 @@
 {
-  "name": "koax",
-  "version": "0.0.3",
+  "name": "@bamptee/koax",
+  "version": "0.0.5",
   "description": "High-performance Koa-compatible framework with iterative middleware execution and context pooling",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,21 +9,34 @@
     "dev": "ts-node examples/with-router.ts",
     "dev:hooks": "ts-node examples/with-hooks.ts",
     "dev:transports": "ts-node examples/with-transports.ts",
+    "dev:koa-middleware": "ts-node examples/with-koa-middleware.ts",
     "benchmark": "ts-node benchmarks/compare.ts",
     "benchmark:hooks": "ts-node benchmarks/hooks-overhead.ts",
     "test": "node --test",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["koax", "koa", "middleware", "framework", "performance"],
+  "keywords": [
+    "koax",
+    "koa",
+    "middleware",
+    "framework",
+    "performance"
+  ],
   "author": "Julien Reynaud @jshiherlis <julien.reynaud75@gmail.com>",
   "license": "MIT",
   "devDependencies": {
+    "@koa/cors": "^5.0.0",
+    "@koa/router": "^14.0.0",
+    "@types/koa": "^2.14.0",
+    "@types/koa__cors": "^5.0.1",
+    "@types/koa__router": "^12.0.5",
     "@types/node": "^20.0.0",
-    "typescript": "^5.3.0",
-    "ts-node": "^10.9.0",
+    "@types/vary": "^1.1.3",
     "autocannon": "^7.14.0",
     "koa": "^3.0.0",
-    "@types/koa": "^2.14.0"
+    "koa-body": "^7.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.3.0"
   },
   "repository": {
     "type": "git",
@@ -33,5 +46,7 @@
     "url": "https://github.com/Bamptee/koax/issues"
   },
   "homepage": "https://github.com/Bamptee/koax#readme",
-  "dependencies": {}
+  "dependencies": {
+    "vary": "^1.1.2"
+  }
 }

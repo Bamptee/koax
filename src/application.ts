@@ -26,6 +26,10 @@ export class KoaXApplication extends EventEmitter {
   public proxy: boolean;
   public subdomainOffset: number;
 
+  // Koa-compatible properties
+  public keys?: string[] | any; // For signed cookies (Keygrip instance or array of keys)
+  public silent?: boolean; // Suppress error output
+
   // NEW: Logger
   public logger: Logger;
   private timingEnabled: boolean;
@@ -41,6 +45,7 @@ export class KoaXApplication extends EventEmitter {
     this.proxy = options.proxy || false;
     this.subdomainOffset = options.subdomainOffset || 2;
     this.contextPool = new ContextPool(options.contextPoolSize || 1000);
+    this.silent = false; // By default, errors are logged
 
     // Initialize logger
     this.logger = createLogger({

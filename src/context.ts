@@ -150,6 +150,50 @@ export class Context implements KoaXContext {
     return this.request.headers;
   }
 
+  get originalUrl(): string {
+    return this.request.originalUrl;
+  }
+
+  get origin(): string {
+    return this.request.origin;
+  }
+
+  get href(): string {
+    return this.request.href;
+  }
+
+  get host(): string {
+    return this.request.host;
+  }
+
+  get hostname(): string {
+    return this.request.hostname;
+  }
+
+  get fresh(): boolean {
+    return this.request.fresh;
+  }
+
+  get stale(): boolean {
+    return this.request.stale;
+  }
+
+  get socket(): any {
+    return this.request.socket;
+  }
+
+  get secure(): boolean {
+    return this.request.secure;
+  }
+
+  get ip(): string {
+    return this.request.ip;
+  }
+
+  get ips(): string[] {
+    return this.request.ips;
+  }
+
   // Delegated properties from response
   get status(): number {
     return this.response.status;
@@ -175,6 +219,38 @@ export class Context implements KoaXContext {
     this.response.body = val;
   }
 
+  get type(): string {
+    return this.response.type;
+  }
+
+  set type(val: string) {
+    this.response.type = val;
+  }
+
+  get length(): number | undefined {
+    return this.response.length;
+  }
+
+  set length(n: number | undefined) {
+    this.response.length = n;
+  }
+
+  get lastModified(): Date | undefined {
+    return this.response.lastModified;
+  }
+
+  set lastModified(val: Date | undefined) {
+    this.response.lastModified = val;
+  }
+
+  get etag(): string | undefined {
+    return this.response.etag;
+  }
+
+  set etag(val: string | undefined) {
+    this.response.etag = val;
+  }
+
   /**
    * Set response header
    */
@@ -187,6 +263,142 @@ export class Context implements KoaXContext {
    */
   get(field: string): string | number | string[] | undefined {
     return this.response.get(field);
+  }
+
+  /**
+   * Remove response header
+   */
+  remove(field: string): void {
+    this.response.remove(field);
+  }
+
+  /**
+   * Vary on field (for CORS and caching)
+   */
+  vary(field: string): void {
+    this.response.vary(field);
+  }
+
+  /**
+   * Redirect to URL (sets Location header and status)
+   */
+  redirect(url: string, alt?: string): void {
+    // Set location
+    this.set('Location', url);
+
+    // Set status
+    if (!this.status || this.status === 404) {
+      this.status = 302;
+    }
+
+    // Set body
+    if (this.req.headers.accept?.includes('html')) {
+      this.type = 'text/html';
+      this.body = `<p>Redirecting to <a href="${url}">${url}</a></p>`;
+    } else {
+      this.type = 'text/plain';
+      this.body = `Redirecting to ${url}`;
+    }
+  }
+
+  /**
+   * Set Content-Disposition to "attachment" with optional filename
+   */
+  attachment(filename?: string): void {
+    if (filename) {
+      this.set('Content-Disposition', `attachment; filename="${filename}"`);
+      // Set type based on extension
+      const ext = filename.split('.').pop();
+      if (ext === 'json') this.type = 'application/json';
+      else if (ext === 'html') this.type = 'text/html';
+      else if (ext === 'txt') this.type = 'text/plain';
+    } else {
+      this.set('Content-Disposition', 'attachment');
+    }
+  }
+
+  /**
+   * Check if the incoming request contains the "Content-Type" header field
+   */
+  is(...types: string[]): string | false | null {
+    const contentType = this.get('content-type');
+    if (!contentType) return null;
+    const ct = Array.isArray(contentType) ? contentType[0] : String(contentType);
+
+    for (const type of types) {
+      if (ct.includes(type)) {
+        return type;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Check if the given types are acceptable (simplified implementation)
+   */
+  accepts(...types: string[]): string | false {
+    const accept = this.get('accept');
+    if (!accept) return types[0] || false;
+
+    const acceptStr = Array.isArray(accept) ? accept[0] : String(accept);
+
+    for (const type of types) {
+      if (acceptStr.includes(type) || acceptStr.includes('*/*')) {
+        return type;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Check if encodings are acceptable
+   */
+  acceptsEncodings(...encodings: string[]): string | false {
+    const accept = this.get('accept-encoding');
+    if (!accept) return encodings[0] || false;
+
+    const acceptStr = Array.isArray(accept) ? accept[0] : String(accept);
+
+    for (const encoding of encodings) {
+      if (acceptStr.includes(encoding)) {
+        return encoding;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Check if charsets are acceptable
+   */
+  acceptsCharsets(...charsets: string[]): string | false {
+    const accept = this.get('accept-charset');
+    if (!accept) return charsets[0] || false;
+
+    const acceptStr = Array.isArray(accept) ? accept[0] : String(accept);
+
+    for (const charset of charsets) {
+      if (acceptStr.includes(charset)) {
+        return charset;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Check if languages are acceptable
+   */
+  acceptsLanguages(...languages: string[]): string | false {
+    const accept = this.get('accept-language');
+    if (!accept) return languages[0] || false;
+
+    const acceptStr = Array.isArray(accept) ? accept[0] : String(accept);
+
+    for (const language of languages) {
+      if (acceptStr.includes(language)) {
+        return language;
+      }
+    }
+    return false;
   }
 
   /**

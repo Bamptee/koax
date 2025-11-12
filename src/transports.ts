@@ -330,7 +330,7 @@ export const transports = {
   /**
    * HTTP endpoint transport
    */
-  http(url: string, options?: { headers?: Record<string, string>; bufferSize?: number }): Transport {
+  http(url: string, options?: { headers?: Record<string, string>; bufferSize?: number, flushIntervalMs?: number }): Transport {
     return new HttpTransport({ url, ...options });
   },
 

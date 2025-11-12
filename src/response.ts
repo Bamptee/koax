@@ -1,4 +1,5 @@
 import { ServerResponse } from 'http';
+import vary from 'vary';
 
 /**
  * Response wrapper - provides convenient access to response properties
@@ -83,6 +84,16 @@ export class KoaXResponse {
   }
 
   /**
+   * Vary on field (for CORS and caching)
+   * Uses the 'vary' package to properly append to Vary header
+   */
+  vary(field: string): void {
+    if (!this.res.headersSent) {
+      vary(this.res, field);
+    }
+  }
+
+  /**
    * Set Content-Type header based on type
    */
   set type(type: string) {
@@ -93,6 +104,56 @@ export class KoaXResponse {
     const type = this.get('Content-Type');
     if (!type) return '';
     return String(type).split(';')[0];
+  }
+
+  /**
+   * Get/Set Content-Length
+   */
+  get length(): number | undefined {
+    const len = this.get('Content-Length');
+    if (!len) return undefined;
+    return parseInt(String(len), 10);
+  }
+
+  set length(n: number | undefined) {
+    if (n !== undefined) {
+      this.set('Content-Length', String(n));
+    } else {
+      this.remove('Content-Length');
+    }
+  }
+
+  /**
+   * Get/Set Last-Modified
+   */
+  get lastModified(): Date | undefined {
+    const date = this.get('Last-Modified');
+    if (!date) return undefined;
+    return new Date(String(date));
+  }
+
+  set lastModified(val: Date | undefined) {
+    if (val instanceof Date) {
+      this.set('Last-Modified', val.toUTCString());
+    } else if (val === undefined) {
+      this.remove('Last-Modified');
+    }
+  }
+
+  /**
+   * Get/Set ETag
+   */
+  get etag(): string | undefined {
+    const etag = this.get('ETag');
+    return etag ? String(etag) : undefined;
+  }
+
+  set etag(val: string | undefined) {
+    if (val) {
+      this.set('ETag', val);
+    } else {
+      this.remove('ETag');
+    }
   }
 
   /**
@@ -145,5 +206,7 @@ export class KoaXResponse {
     this._status = 404;
     this._message = undefined;
     this._explicitStatus = false;
+    // Set default Content-Type to application/json
+    this.set('Content-Type', 'application/json; charset=utf-8');
   }
 }

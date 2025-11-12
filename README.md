@@ -36,11 +36,11 @@ but need **better performance, observability, and developer experience** out of 
 ## 📦 Installation
 
 ```bash
-npm install koax
+npm install @bamptee/koax
 
 # or
-yarn add koax
-pnpm add koax
+yarn add @bamptee/koax
+pnpm add @bamptee/koax
 ```
 
 ---
@@ -50,7 +50,7 @@ pnpm add koax
 ### Basic Server
 
 ```typescript
-import KoaX from 'koax';
+import KoaX from '@bamptee/koax';
 
 const app = new KoaX();
 
@@ -66,7 +66,7 @@ app.listen(3000, () => {
 ### With Hooks & Logging
 
 ```typescript
-import KoaX from 'koax';
+import KoaX from '@bamptee/koax';
 
 const app = new KoaX({
   logger: {
@@ -229,7 +229,7 @@ app.use(async (ctx) => {
 Send logs to multiple destinations without external dependencies.
 
 ```typescript
-import { transports } from 'koax';
+import { transports } from '@bamptee/koax';
 
 const app = new KoaX({
   logger: {
@@ -416,7 +416,7 @@ interface KoaXOptions {
     enabled?: boolean;             // Enable logger (default: true)
     level?: LogLevel;              // Log level (default: 'info')
     prettyPrint?: boolean;         // Pretty output (default: dev mode)
-    name?: string;                 // App name (default: 'koax')
+    name?: string;                 // App name (default: '@bamptee/koax')
     transport?: Transport;         // Custom transport
   };
   timing?: boolean;                // Auto timing (default: true)
@@ -507,7 +507,7 @@ ctx.log.info({ userId: 123 }, 'User logged in');
 ### Transports
 
 ```typescript
-import { transports } from 'koax';
+import { transports } from '@bamptee/koax';
 
 // Console
 transports.console({ prettyPrint: boolean })
@@ -545,7 +545,7 @@ transports.filter(
 ### Basic REST API
 
 ```typescript
-import KoaX from 'koax';
+import KoaX from '@bamptee/koax';
 
 const app = new KoaX({ logger: { prettyPrint: true } });
 
@@ -584,7 +584,7 @@ app.listen(3000);
 ### With Existing Koa Middleware
 
 ```typescript
-import KoaX from 'koax';
+import KoaX from '@bamptee/koax';
 import cors from '@koa/cors';
 import bodyParser from 'koa-bodyparser';
 import Router from '@koa/router';
@@ -615,7 +615,7 @@ app.listen(3000);
 ### Production Setup
 
 ```typescript
-import KoaX, { transports } from 'koax';
+import KoaX, { transports } from '@bamptee/koax';
 
 const app = new KoaX({
   contextPoolSize: 2000,
@@ -715,7 +715,7 @@ npm install koax
 import Koa from 'koa';
 
 // After
-import KoaX from 'koax';
+import KoaX from '@bamptee/koax';
 ```
 
 ### Step 3: Update Instantiation (Optional)
@@ -835,7 +835,7 @@ const app = new KoaX({
 
 ### Can I use it with my existing Koa app?
 
-Yes! Just replace `import Koa from 'koa'` with `import KoaX from 'koax'`. Everything else works the same.
+Yes! Just replace `import Koa from 'koa'` with `import KoaX from '@bamptee/koax'`. Everything else works the same.
 
 ### Does it work with TypeScript?
 

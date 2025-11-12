@@ -22,48 +22,79 @@ export type HookFunction = (ctx: KoaXContext) => Promise<void> | void;
  * Error hook function signature
  */
 export type ErrorHookFunction = (error: Error, ctx: KoaXContext) => Promise<void> | void;
-export type KoaContextAny = any;
 
 /**
- * Context object interface - compatible with Koa's context
+ * Context object interface - fully compatible with Koa's context
+ *
+ * This interface is designed to be structurally compatible with Koa.Context
+ * so that all existing Koa middleware will work without modifications.
+ * We use structural typing instead of extends to avoid deep inheritance issues.
  */
-export interface KoaXContext extends KoaContextAny {
+export interface KoaXContext {
+  // Core properties
   app: KoaXApplication;
   req: IncomingMessage;
   res: ServerResponse;
   request: KoaXRequest;
   response: KoaXResponse;
   state: Record<string, any>;
-  type?: string;
 
-  // Logger instance (NEW)
-  log: Logger;
+  // NEW: KoaX additions (not in standard Koa)
+  log: Logger;           // Structured logger with request context
+  requestId: string;     // Unique request ID for tracing
+  startTime: number;     // Request start timestamp for timing
 
-  // Request ID for tracing (NEW)
-  requestId: string;
-
-  // Request start time for timing (NEW)
-  startTime: number;
-
-  // Delegated properties from request
+  // Delegated from request (Koa-compatible)
   url: string;
   method: string;
   path: string;
   query: Record<string, string>;
   headers: Record<string, string | string[] | undefined>;
+  originalUrl: string;
+  origin: string;
+  href: string;
+  host: string;
+  hostname: string;
+  fresh: boolean;
+  stale: boolean;
+  socket: any;
+  secure: boolean;
+  ip: string;
+  ips: string[];
 
-  // Delegated properties from response
+  // Delegated from response (Koa-compatible)
   status: number;
   message: string;
   body: any;
+  type: string;
+  length?: number;
+  lastModified?: Date;
+  etag?: string;
 
-  // Helper methods
+  // Helper methods (Koa-compatible)
   throw(status: number, message?: string): never;
   assert(condition: any, status: number, message?: string): asserts condition;
   set(field: string, val: string | string[]): void;
   get(field: string): string | number | string[] | undefined;
+  remove(field: string): void;
+  vary(field: string): void;
+  redirect(url: string, alt?: string): void;
+  attachment(filename?: string): void;
+  is(...types: string[]): string | false | null;
+  accepts(...types: string[]): string | false;
+  acceptsEncodings(...encodings: string[]): string | false;
+  acceptsCharsets(...charsets: string[]): string | false;
+  acceptsLanguages(...languages: string[]): string | false;
 
-  // Internal pooling flag
+  // Optional Koa methods (for middleware compatibility)
+  onerror?(err: Error): void;
+  toJSON?(): any;
+  inspect?(): any;
+
+  // Router params (added by @koa/router and other routers)
+  params?: Record<string, string>;
+
+  // Internal pooling flag (KoaX-specific)
   _inUse?: boolean;
 }
 
