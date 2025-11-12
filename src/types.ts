@@ -22,17 +22,19 @@ export type HookFunction = (ctx: KoaXContext) => Promise<void> | void;
  * Error hook function signature
  */
 export type ErrorHookFunction = (error: Error, ctx: KoaXContext) => Promise<void> | void;
+export type KoaContextAny = any;
 
 /**
  * Context object interface - compatible with Koa's context
  */
-export interface KoaXContext {
+export interface KoaXContext extends KoaContextAny {
   app: KoaXApplication;
   req: IncomingMessage;
   res: ServerResponse;
   request: KoaXRequest;
   response: KoaXResponse;
   state: Record<string, any>;
+  type?: string;
 
   // Logger instance (NEW)
   log: Logger;
