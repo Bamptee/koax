@@ -1,0 +1,28 @@
+{
+  "name": "koax",
+  "version": "0.0.1",
+  "description": "High-performance Koa-compatible framework with iterative middleware execution and context pooling",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node examples/with-router.ts",
+    "dev:hooks": "ts-node examples/with-hooks.ts",
+    "dev:transports": "ts-node examples/with-transports.ts",
+    "benchmark": "ts-node benchmarks/compare.ts",
+    "benchmark:hooks": "ts-node benchmarks/hooks-overhead.ts",
+    "test": "node --test"
+  },
+  "keywords": ["koax", "koa", "middleware", "framework", "performance"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "ts-node": "^10.9.0",
+    "autocannon": "^7.14.0",
+    "koa": "^3.0.0",
+    "@types/koa": "^2.14.0"
+  },
+  "dependencies": {}
+}
