@@ -1,6 +1,6 @@
 {
   "name": "koax",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "High-performance Koa-compatible framework with iterative middleware execution and context pooling",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,7 +11,8 @@
     "dev:transports": "ts-node examples/with-transports.ts",
     "benchmark": "ts-node benchmarks/compare.ts",
     "benchmark:hooks": "ts-node benchmarks/hooks-overhead.ts",
-    "test": "node --test"
+    "test": "node --test",
+    "prepublishOnly": "npm run build"
   },
   "keywords": ["koax", "koa", "middleware", "framework", "performance"],
   "author": "Julien Reynaud @jshiherlis <julien.reynaud75@gmail.com>",
