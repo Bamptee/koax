@@ -92,8 +92,12 @@ export interface KoaXContext {
   toJSON?(): any;
   inspect?(): any;
 
-  // Router params (added by @koa/router and other routers)
-  params?: Record<string, string>;
+  // Router properties (added by @koa/router and KoaX Router)
+  params?: Record<string, string>;           // URL parameters from route patterns
+  router?: any;                               // Reference to the Router instance
+  matched?: any[];                            // Array of matched route layers
+  _matchedRoute?: string;                     // Pattern of the matched route
+  _matchedRouteName?: string;                 // Name of the matched route (if named)
 
   // Internal pooling flag (KoaX-specific)
   _inUse?: boolean;

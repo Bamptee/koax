@@ -53,8 +53,12 @@ export class ContextPool {
     if (this.pool.length < this.maxSize) {
       // Clear state to prevent memory leaks
       ctx.state = {};
-      // Clear params to avoid pollution (important for routers)
+      // Clear router properties to avoid pollution between requests
       (ctx as any).params = undefined;
+      (ctx as any).router = undefined;
+      (ctx as any).matched = undefined;
+      (ctx as any)._matchedRoute = undefined;
+      (ctx as any)._matchedRouteName = undefined;
       this.pool.push(ctx);
     }
   }
@@ -107,8 +111,12 @@ export class Context implements KoaXContext {
     this.response.reset(res);
     this.state = {};
 
-    // Reset params to avoid pollution between requests (important for routers)
+    // Reset router properties to avoid pollution between requests
     (this as any).params = undefined;
+    (this as any).router = undefined;
+    (this as any).matched = undefined;
+    (this as any)._matchedRoute = undefined;
+    (this as any)._matchedRouteName = undefined;
 
     // Only initialize logger/timing if enabled (avoid overhead when disabled)
     if ((app as any).logger?.enabled) {

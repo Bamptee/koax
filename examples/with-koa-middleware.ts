@@ -4,15 +4,14 @@
  * This example demonstrates 100% compatibility with existing Koa middleware:
  * - @koa/cors for CORS handling
  * - koa-body for request body parsing (JSON, multipart, urlencoded)
- * - @koa/router for routing
+ * - KoaX Router (built-in, drop-in replacement for @koa/router)
  *
  * All middleware work without ANY modifications!
  */
 
-import KoaX, { KoaXContext } from '../src';
+import KoaX, { KoaXContext, Router } from '../src';
 import cors from '@koa/cors';
 import koaBody from 'koa-body';
-import Router from '@koa/router';
 
 // Create KoaX application with logging
 const app = new KoaX({
@@ -75,7 +74,7 @@ app.use(async (ctx, next) => {
 });
 
 // ============================================
-// ROUTES USING @koa/router (standard Koa router)
+// ROUTES USING KoaX Router (drop-in replacement for @koa/router)
 // ============================================
 
 const router = new Router();
@@ -305,10 +304,9 @@ router.get('/error', async (ctx: KoaXContext) => {
 });
 
 // Register router middleware
-// TypeScript note: router.routes() returns Koa middleware type
-// We cast to 'any' to bridge the type definitions
-app.use(router.routes() as any);
-app.use(router.allowedMethods() as any);
+// TypeScript note: No casting needed - KoaX Router is natively compatible!
+app.use(router.routes());
+app.use(router.allowedMethods());
 
 // 404 handler (runs if no route matched)
 app.use(async (ctx) => {
@@ -355,7 +353,7 @@ app.listen(PORT, () => {
   console.log('\n📦 Using standard Koa middleware:');
   console.log('  ✅ @koa/cors - CORS handling');
   console.log('  ✅ koa-body - JSON, multipart, urlencoded parsing');
-  console.log('  ✅ @koa/router - Routing');
+  console.log('  ✅ KoaX Router - Routing (drop-in replacement for @koa/router)');
   console.log('\n🎯 Test endpoints:');
   console.log(`  GET    http://localhost:${PORT}/`);
   console.log(`  GET    http://localhost:${PORT}/users`);

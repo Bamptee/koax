@@ -9,6 +9,8 @@
  * - Regex-based matching
  * - Middleware composition
  * - GET, POST, PUT, DELETE, PATCH methods
+ * - Nested routers support
+ * - allowedMethods() for OPTIONS/405/501
  * - No external dependencies
  *
  * @example
@@ -23,6 +25,7 @@
  * });
  *
  * app.use(router.routes());
+ * app.use(router.allowedMethods());
  * ```
  */
 
@@ -40,12 +43,20 @@ interface Route {
 }
 
 /**
+ * Middleware with router property (for nested routers)
+ */
+interface RouterMiddleware extends Middleware {
+  router?: Router;
+}
+
+/**
  * Router class
  *
  * Provides routing functionality for KoaX/Koa applications
  */
 export class Router {
   private routeList: Route[] = [];
+  private methods: string[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
 
   /**
    * Register a GET route
@@ -209,17 +220,27 @@ export class Router {
   /**
    * Return middleware function for use with KoaX/Koa
    *
-   * @returns Middleware function
+   * @returns Middleware function with router property (for nested routers)
    *
    * @example
    * ```typescript
    * app.use(router.routes());
    * ```
    */
-  routes(): Middleware {
-    return async (ctx: KoaXContext, next: () => Promise<void>) => {
+  routes(): RouterMiddleware {
+    const router = this;
+
+    const middleware: RouterMiddleware = async (ctx: KoaXContext, next: () => Promise<void>) => {
       // Reset params to avoid pollution from previous requests (context pooling)
       ctx.params = undefined;
+
+      // Set router reference on context (for @koa/router compatibility)
+      ctx.router = router;
+
+      // Initialize matched array if not present
+      if (!ctx.matched) {
+        ctx.matched = [];
+      }
 
       // Try to match the request against registered routes
       for (const route of this.routeList) {
@@ -235,6 +256,9 @@ export class Router {
           continue;
         }
 
+        // Set matched route on context
+        ctx._matchedRoute = route.pattern;
+
         // Extract parameters
         // IMPORTANT: Always create a new object to avoid polluting pooled contexts
         if (route.paramNames.length > 0) {
@@ -244,6 +268,11 @@ export class Router {
           });
         }
 
+        // Copy params to ctx.request.params for @koa/router compatibility
+        if (ctx.request) {
+          (ctx.request as any).params = ctx.params;
+        }
+
         // Execute the route handler
         await route.handler(ctx, next);
         return;
@@ -251,6 +280,138 @@ export class Router {
 
       // No route matched, pass to next middleware
       return next();
+    };
+
+    // Add router property to middleware (for nested router detection)
+    middleware.router = this;
+
+    return middleware;
+  }
+
+  /**
+   * Use middleware with optional path prefix
+   * Supports nested routers for modular routing
+   *
+   * @param path - Optional path prefix
+   * @param middleware - Middleware function or Router
+   * @returns this for chaining
+   *
+   * @example
+   * ```typescript
+   * // Use router as nested router
+   * const apiRouter = new Router();
+   * apiRouter.get('/users', handler);
+   * router.use('/api', apiRouter.routes());
+   *
+   * // Use regular middleware
+   * router.use('/admin', authMiddleware);
+   * ```
+   */
+  use(path: string | Middleware, middleware?: Middleware): this {
+    let prefix = '';
+    let handler: Middleware;
+
+    // Handle overloads: use(middleware) or use(path, middleware)
+    if (typeof path === 'function') {
+      handler = path;
+    } else {
+      prefix = path;
+      if (!middleware) {
+        throw new Error('Middleware is required when path is provided');
+      }
+      handler = middleware;
+    }
+
+    // Check if handler is a router middleware (has .router property)
+    const routerMiddleware = handler as RouterMiddleware;
+    if (routerMiddleware.router) {
+      // Nested router: merge routes from child router into this router
+      const childRouter = routerMiddleware.router;
+      for (const route of childRouter.routeList) {
+        const newPath = prefix ? prefix + route.pattern : route.pattern;
+        this.register(route.method, newPath, route.handler);
+      }
+    } else {
+      // Regular middleware: register as wildcard route
+      const wildcardPath = prefix ? prefix + '(.*)' : '(.*)';
+      // Register for all HTTP methods
+      this.methods.forEach(method => {
+        this.register(method, wildcardPath, handler);
+      });
+    }
+
+    return this;
+  }
+
+  /**
+   * Returns middleware for handling OPTIONS requests and method errors
+   * Responds with Allow header for OPTIONS, 405 for wrong method, 501 for not implemented
+   *
+   * @param options - Optional configuration
+   * @returns Middleware function
+   *
+   * @example
+   * ```typescript
+   * app.use(router.routes());
+   * app.use(router.allowedMethods());
+   * ```
+   */
+  allowedMethods(options: { throw?: boolean } = {}): Middleware {
+    const router = this;
+
+    return async (ctx: KoaXContext, next: () => Promise<void>) => {
+      await next();
+
+      // Only handle if status is 404 or falsy (no response set)
+      // Unlike @koa/router, we don't require ctx.matched since routes() always sets it
+      if (ctx.status && ctx.status !== 404) {
+        return;
+      }
+
+      // Find which methods are allowed for this path
+      const allowedMethods = new Set<string>();
+      for (const route of router.routeList) {
+        if (ctx.path.match(route.regex)) {
+          allowedMethods.add(route.method);
+        }
+      }
+
+      const allowed = Array.from(allowedMethods);
+
+      // No routes match this path - let 404 handler deal with it
+      if (allowed.length === 0) {
+        return;
+      }
+
+      // Handle OPTIONS request
+      if (ctx.method === 'OPTIONS') {
+        ctx.status = 200;
+        ctx.set('Allow', allowed.join(', '));
+        ctx.body = '';
+        return;
+      }
+
+      // Check if method is implemented
+      if (!router.methods.includes(ctx.method)) {
+        if (options.throw) {
+          ctx.throw(501, `Method ${ctx.method} not implemented`);
+        } else {
+          ctx.status = 501;
+          ctx.set('Allow', allowed.join(', '));
+        }
+        return;
+      }
+
+      // Check if method is allowed for this route
+      if (!allowed.includes(ctx.method)) {
+        if (options.throw) {
+          ctx.throw(405, `Method ${ctx.method} not allowed`);
+        } else {
+          ctx.status = 405;
+          ctx.set('Allow', allowed.join(', '));
+        }
+        return;
+      }
     };
   }
 
