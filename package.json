@@ -1,6 +1,6 @@
 {
   "name": "@bamptee/koax",
-  "version": "0.0.9",
+  "version": "0.1.0",
   "description": "High-performance Koa-compatible framework with iterative middleware execution and context pooling",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

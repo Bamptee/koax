@@ -55,7 +55,7 @@ interface RouterMiddleware extends Middleware {
  * Provides routing functionality for KoaX/Koa applications
  */
 export class Router {
-  private routeList: Route[] = [];
+  public routeList: Route[] = [];
   private methods: string[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
 
   /**
