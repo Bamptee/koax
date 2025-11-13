@@ -10,8 +10,16 @@
     "dev:hooks": "ts-node examples/with-hooks.ts",
     "dev:transports": "ts-node examples/with-transports.ts",
     "dev:koa-middleware": "ts-node examples/with-koa-middleware.ts",
+    "dev:server-transports": "ts-node examples/with-server-transports.ts",
     "benchmark": "ts-node benchmarks/compare.ts",
+    "benchmark:fair": "ts-node benchmarks/compare-fair.ts",
+    "benchmark:fair:built": "npm run build && node --expose-gc benchmarks/compare-fair.js",
+    "benchmark:real": "npm run build && node benchmarks/real-http-bench.js",
+    "benchmark:real:simple": "npm run build && node benchmarks/simple-real-bench.js",
+    "benchmark:router": "ts-node benchmarks/with-router.ts",
     "benchmark:hooks": "ts-node benchmarks/hooks-overhead.ts",
+    "benchmark:server-transports": "ts-node benchmarks/server-transports.ts",
+    "benchmark:full": "ts-node benchmarks/compare-with-transports.ts",
     "test": "node --test",
     "prepublishOnly": "npm run build"
   },
@@ -20,13 +28,18 @@
     "koa",
     "middleware",
     "framework",
-    "performance"
+    "performance",
+    "router",
+    "routing",
+    "http",
+    "server"
   ],
   "author": "Julien Reynaud @jshiherlis <julien.reynaud75@gmail.com>",
   "license": "MIT",
   "devDependencies": {
     "@koa/cors": "^5.0.0",
     "@koa/router": "^14.0.0",
+    "@types/autocannon": "^7.12.7",
     "@types/koa": "^2.14.0",
     "@types/koa__cors": "^5.0.1",
     "@types/koa__router": "^12.0.5",
@@ -48,5 +61,8 @@
   "homepage": "https://github.com/Bamptee/koax#readme",
   "dependencies": {
     "vary": "^1.1.2"
+  },
+  "optionalDependencies": {
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.56.0"
   }
 }

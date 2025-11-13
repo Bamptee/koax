@@ -206,7 +206,7 @@ export class KoaXResponse {
     this._status = 404;
     this._message = undefined;
     this._explicitStatus = false;
-    // Set default Content-Type to application/json
-    this.set('Content-Type', 'application/json; charset=utf-8');
+    // Don't set default Content-Type here - too expensive
+    // It will be set when body is JSON in send()
   }
 }

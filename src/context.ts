@@ -105,16 +105,21 @@ export class Context implements KoaXContext {
     this.response.reset(res);
     this.state = {};
 
-    // NEW: Initialize logger and timing for this request
-    this.requestId = generateRequestId();
-    this.startTime = Date.now();
-
-    // Create child logger with request context
-    this.log = app.logger.child({
-      reqId: this.requestId,
-      method: req.method,
-      url: req.url
-    });
+    // Only initialize logger/timing if enabled (avoid overhead when disabled)
+    if ((app as any).logger?.enabled) {
+      this.requestId = generateRequestId();
+      this.startTime = Date.now();
+      this.log = app.logger.child({
+        reqId: this.requestId,
+        method: req.method,
+        url: req.url
+      });
+    } else {
+      // Use empty/noop logger when disabled
+      this.requestId = '';
+      this.startTime = 0;
+      this.log = app.logger; // Use app logger directly (noop if disabled)
+    }
   }
 
   // Delegated properties from request

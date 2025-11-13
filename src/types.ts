@@ -4,6 +4,7 @@ import { KoaXResponse } from './response';
 import { KoaXApplication } from './application';
 import { Logger } from './logger';
 import { Transport } from './transports';
+import { ServerTransport } from './server-transports';
 
 /**
  * Middleware function signature compatible with Koa
@@ -114,4 +115,5 @@ export interface KoaXOptions {
     transport?: Transport; // NEW: Custom transport (console, file, HTTP, etc.)
   };
   timing?: boolean; // Enable automatic request timing (default: true)
+  serverTransport?: ServerTransport; // NEW: Custom server transport (HTTP, HTTP/2, uWebSockets, etc.)
 }

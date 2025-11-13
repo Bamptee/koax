@@ -30,6 +30,17 @@ export {
   FilterTransport,
   transports
 } from './transports';
+export {
+  ServerTransport,
+  HttpTransport as HttpServerTransport,
+  Http2Transport,
+  Http2SecureTransport,
+  HttpsTransport,
+  Http2FallbackTransport,
+  UWebSocketsTransport,
+  serverTransports
+} from './server-transports';
+export { Router, createRouter } from './router';
 
 // Default export for convenience
 import { KoaXApplication } from './application';

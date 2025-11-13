@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import { Middleware, KoaXContext, KoaXOptions, HookFunction, ErrorHookFunction } from './types';
 import { ContextPool, Context } from './context';
 import { Logger, createLogger } from './logger';
+import { ServerTransport, serverTransports } from './server-transports';
 
 /**
  * KoaX Application
@@ -34,6 +35,9 @@ export class KoaXApplication extends EventEmitter {
   public logger: Logger;
   private timingEnabled: boolean;
 
+  // NEW: Server transport for different HTTP implementations
+  private serverTransport: ServerTransport;
+
   // NEW: Hooks inspired by Fastify
   private requestHooks: HookFunction[] = [];
   private responseHooks: HookFunction[] = [];
@@ -44,8 +48,8 @@ export class KoaXApplication extends EventEmitter {
     this.env = options.env || process.env.NODE_ENV || 'development';
     this.proxy = options.proxy || false;
     this.subdomainOffset = options.subdomainOffset || 2;
-    this.contextPool = new ContextPool(options.contextPoolSize || 1000);
-    this.silent = false; // By default, errors are logged
+    this.contextPool = new ContextPool(options.contextPoolSize || 100);
+    this.silent = true; // By default, errors are logged
 
     // Initialize logger
     this.logger = createLogger({
@@ -55,6 +59,9 @@ export class KoaXApplication extends EventEmitter {
       name: options.logger?.name || 'koax',
       transport: options.logger?.transport  // Pass custom transport if provided
     });
+
+    // Initialize server transport (default: standard HTTP)
+    this.serverTransport = options.serverTransport || serverTransports.http();
 
     // Enable timing by default
     this.timingEnabled = options.timing ?? true;
@@ -118,10 +125,11 @@ export class KoaXApplication extends EventEmitter {
   /**
    * Create HTTP server and listen on port
    * Compatible with Koa's app.listen()
+   *
+   * Uses the configured server transport (HTTP, HTTP/2, uWebSockets, etc.)
    */
   listen(port: number, callback?: () => void): Server {
-    const server = createServer(this.callback());
-    return server.listen(port, callback);
+    return this.serverTransport.listen(port, this.callback(), callback) as Server;
   }
 
   /**

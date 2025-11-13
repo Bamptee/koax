@@ -1,88 +1,18 @@
 /**
- * KoaX example with a simple router
- * Demonstrates building a router middleware compatible with KoaX/Koa
+ * KoaX example with the built-in Router
+ * Demonstrates using KoaX's Router as an alternative to @koa/router
  */
 
-import KoaXApplication from '../src';
-import { KoaXContext, Middleware } from '../src/types';
-
-/**
- * Simple router implementation
- * Compatible with KoaX and Koa
- */
-class SimpleRouter {
-  private routeMap: Map<string, Map<string, Middleware>> = new Map();
-
-  /**
-   * Register a GET route
-   */
-  get(path: string, handler: Middleware): this {
-    return this.register('GET', path, handler);
-  }
-
-  /**
-   * Register a POST route
-   */
-  post(path: string, handler: Middleware): this {
-    return this.register('POST', path, handler);
-  }
-
-  /**
-   * Register a PUT route
-   */
-  put(path: string, handler: Middleware): this {
-    return this.register('PUT', path, handler);
-  }
-
-  /**
-   * Register a DELETE route
-   */
-  delete(path: string, handler: Middleware): this {
-    return this.register('DELETE', path, handler);
-  }
-
-  /**
-   * Register a route for any method
-   */
-  private register(method: string, path: string, handler: Middleware): this {
-    if (!this.routeMap.has(method)) {
-      this.routeMap.set(method, new Map());
-    }
-    this.routeMap.get(method)!.set(path, handler);
-    return this;
-  }
-
-  /**
-   * Return middleware function
-   */
-  routes(): Middleware {
-    return async (ctx: KoaXContext, next: () => Promise<void>) => {
-      const methodRoutes = this.routeMap.get(ctx.method);
-
-      if (!methodRoutes) {
-        return next();
-      }
-
-      const handler = methodRoutes.get(ctx.path);
-
-      if (!handler) {
-        return next();
-      }
-
-      // Execute the route handler
-      await handler(ctx, next);
-    };
-  }
-}
+import KoaXApplication, { Router, serverTransports } from '../src';
 
 // Create application
 const app = new KoaXApplication({
   contextPoolSize: 200,
+  serverTransport: serverTransports.http(), // ✅ HTTP/1.1 - Pas de limite 4KB, simple et stable
   logger: {
     enabled: true,
     prettyPrint: true,
     name: 'console-app'
-    // No transport specified = uses ConsoleTransport by default
   },
 });
 
@@ -105,8 +35,8 @@ app.use(async (ctx, next) => {
   }
 });
 
-// Create router
-const router = new SimpleRouter();
+// Create router (alternative to @koa/router)
+const router = new Router();
 
 // Define routes
 router.get('/', async (ctx) => {
@@ -145,8 +75,8 @@ router.get('/users', async (ctx) => {
 });
 
 router.get('/users/:id', async (ctx) => {
-  // Simple parameter extraction
-  const id = parseInt(ctx.path.split('/')[2]);
+  // Extract parameter from ctx.params
+  const id = parseInt(ctx.params?.id || '0');
   const user = users.find(u => u.id === id);
 
   if (!user) {

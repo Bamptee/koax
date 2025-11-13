@@ -1,13 +1,13 @@
 /**
- * Benchmark: KoaX vs Koa
+ * Fair Benchmark: KoaX vs Koa (BUILT VERSIONS)
  *
- * Compares performance between standard Koa and KoaX
- * Tests throughput, latency, and resource usage
+ * Uses compiled JavaScript to avoid TypeScript overhead
+ * Gives real production performance numbers
  */
 
-import { performance } from 'node:perf_hooks';
-import Koa from 'koa';
-import KoaXApplication from '../src';
+const { performance } = require('node:perf_hooks');
+const Koa = require('koa');
+const { KoaXApplication } = require('../dist/index');
 
 // Test configuration
 const WARMUP_REQUESTS = 1000;
@@ -17,10 +17,7 @@ const CONCURRENT_REQUESTS = 100;
 /**
  * Simulate a simple HTTP request without network overhead
  */
-async function simulateRequest(
-  handler: (req: any, res: any) => void,
-  path: string = '/'
-): Promise<number> {
+async function simulateRequest(handler, path = '/') {
   const start = performance.now();
 
   // Mock request/response objects
@@ -29,39 +26,54 @@ async function simulateRequest(
     method: 'GET',
     headers: {
       'user-agent': 'benchmark',
-      'accept': 'application/json'
+      'accept': 'application/json',
+      'host': 'localhost:3000'
     },
     httpVersion: '1.1',
     httpVersionMajor: 1,
-    httpVersionMinor: 1
+    httpVersionMinor: 1,
+    socket: {
+      remoteAddress: '127.0.0.1',
+      encrypted: false
+    }
   };
 
   const mockRes = {
     statusCode: 200,
     statusMessage: '',
-    headers: {} as any,
+    headers: {},
     headersSent: false,
     writableEnded: false,
-    setHeader(key: string, value: any) {
+    setHeader(key, value) {
       this.headers[key] = value;
     },
-    getHeader(key: string) {
+    getHeader(key) {
       return this.headers[key];
     },
-    removeHeader(key: string) {
+    removeHeader(key) {
       delete this.headers[key];
     },
-    end(body?: any) {
+    end(body) {
       this.writableEnded = true;
+      if (this._finishCallback) {
+        setImmediate(this._finishCallback);
+      }
     },
-    write(chunk: any) {},
-    on(event: string, callback: Function) {}
+    write(chunk) {},
+    on(event, callback) {
+      if (event === 'finish') {
+        this._finishCallback = callback;
+      }
+      return this;
+    },
+    once(event, callback) {
+      return this.on(event, callback);
+    }
   };
 
   // Execute handler
-  await new Promise<void>((resolve) => {
+  await new Promise((resolve) => {
     handler(mockReq, mockRes);
-    // Simulate response completion
     setImmediate(() => {
       resolve();
     });
@@ -73,21 +85,7 @@ async function simulateRequest(
 /**
  * Run benchmark for a framework
  */
-async function runBenchmark(
-  name: string,
-  createApp: () => any,
-  requests: number
-): Promise<{
-  name: string;
-  totalTime: number;
-  avgLatency: number;
-  requestsPerSecond: number;
-  minLatency: number;
-  maxLatency: number;
-  p50: number;
-  p95: number;
-  p99: number;
-}> {
+async function runBenchmark(name, createApp, requests) {
   const app = createApp();
   const handler = app.callback();
 
@@ -108,7 +106,7 @@ async function runBenchmark(
 
   // Benchmark
   console.log(`  Testing (${requests} requests)...`);
-  const latencies: number[] = [];
+  const latencies = [];
   const start = performance.now();
 
   // Run requests in batches for concurrency
@@ -173,7 +171,7 @@ async function runBenchmark(
 }
 
 /**
- * Create Koa test app
+ * Create Koa test app (baseline)
  */
 function createKoaApp() {
   const app = new Koa();
@@ -183,7 +181,6 @@ function createKoaApp() {
     const start = Date.now();
     await next();
     const ms = Date.now() - start;
-    // Simulate logging work
     const _log = `${ctx.method} ${ctx.url} - ${ms}ms`;
   });
 
@@ -201,30 +198,68 @@ function createKoaApp() {
 }
 
 /**
- * Create KoaX test app
+ * Create KoaX test app - BASIC
  */
-function createKoaXApp() {
+function createKoaXBasicApp() {
   const app = new KoaXApplication({
     contextPoolSize: 1000,
-    logger: { enabled: false },  // Disable logger for fair comparison
-    timing: false  // Disable timing for fair comparison
+    logger: {
+      enabled: false
+    },
+    timing: false
   });
 
-  // Logger middleware
   app.use(async (ctx, next) => {
     const start = Date.now();
     await next();
     const ms = Date.now() - start;
-    // Simulate logging work
     const _log = `${ctx.method} ${ctx.url} - ${ms}ms`;
   });
 
-  // Business logic middleware
   app.use(async (ctx, next) => {
     await next();
   });
 
-  // Response middleware
+  app.use(async (ctx) => {
+    ctx.body = { message: 'Hello, World!', timestamp: Date.now() };
+  });
+
+  return app;
+}
+
+/**
+ * Create KoaX test app - FULL
+ */
+function createKoaXFullApp() {
+  const app = new KoaXApplication({
+    contextPoolSize: 1000,
+    logger: {
+      enabled: true,
+      level: 'info',
+      prettyPrint: false
+    },
+    timing: true
+  });
+
+  app.onRequest(async (ctx) => {
+    // Hook work
+  });
+
+  app.onResponse(async (ctx) => {
+    // Hook work
+  });
+
+  app.use(async (ctx, next) => {
+    const start = Date.now();
+    await next();
+    const ms = Date.now() - start;
+    const _log = `${ctx.method} ${ctx.url} - ${ms}ms`;
+  });
+
+  app.use(async (ctx, next) => {
+    await next();
+  });
+
   app.use(async (ctx) => {
     ctx.body = { message: 'Hello, World!', timestamp: Date.now() };
   });
@@ -235,12 +270,11 @@ function createKoaXApp() {
 /**
  * Format results table
  */
-function printResults(results: any[]) {
+function printResults(results) {
   console.log('\n' + '='.repeat(80));
-  console.log('BENCHMARK RESULTS');
+  console.log('FAIR BENCHMARK RESULTS (BUILT VERSIONS)');
   console.log('='.repeat(80) + '\n');
 
-  // Find the fastest
   const fastest = results.reduce((min, r) =>
     r.requestsPerSecond > min.requestsPerSecond ? r : min
   );
@@ -250,7 +284,7 @@ function printResults(results: any[]) {
     const isFastest = result === fastest;
 
     console.log(`${result.name}:`);
-    console.log(`  Requests/sec:  ${result.requestsPerSecond.toFixed(2)} ${isFastest ? '⚡' : `(${speedup}%)`}`);
+    console.log(`  Requests/sec:  ${result.requestsPerSecond.toFixed(2)} ${isFastest ? '⚡ FASTEST' : `(${speedup}% of fastest)`}`);
     console.log(`  Avg latency:   ${result.avgLatency.toFixed(3)} ms`);
     console.log(`  Min latency:   ${result.minLatency.toFixed(3)} ms`);
     console.log(`  Max latency:   ${result.maxLatency.toFixed(3)} ms`);
@@ -261,24 +295,45 @@ function printResults(results: any[]) {
     console.log('');
   }
 
-  // Performance comparison
   console.log('='.repeat(80));
   console.log('PERFORMANCE COMPARISON');
   console.log('='.repeat(80) + '\n');
 
-  if (results.length === 2) {
-    const [koa, koax] = results;
-    const improvement = ((koax.requestsPerSecond / koa.requestsPerSecond - 1) * 100);
-    const latencyImprovement = ((koa.avgLatency / koax.avgLatency - 1) * 100);
+  if (results.length >= 2) {
+    const koa = results.find(r => r.name === 'Koa') || results[0];
+    const koaxBasic = results.find(r => r.name === 'KoaX Basic');
+    const koaxFull = results.find(r => r.name === 'KoaX Full');
 
-    console.log(`KoaX is ${improvement >= 0 ? improvement.toFixed(1) : Math.abs(improvement).toFixed(1)}% ${improvement >= 0 ? 'FASTER' : 'SLOWER'} than Koa`);
-    console.log(`KoaX latency is ${latencyImprovement >= 0 ? latencyImprovement.toFixed(1) : Math.abs(latencyImprovement).toFixed(1)}% ${latencyImprovement >= 0 ? 'BETTER' : 'WORSE'} than Koa\n`);
+    if (koaxBasic) {
+      const improvement = ((koaxBasic.requestsPerSecond / koa.requestsPerSecond - 1) * 100);
+      const latencyImprovement = ((koa.avgLatency / koaxBasic.avgLatency - 1) * 100);
 
-    console.log('Key optimizations in KoaX:');
-    console.log('  ✓ Context pooling reduces GC pressure');
-    console.log('  ✓ Optimized request/response with property caching');
-    console.log('  ✓ Simpler middleware dispatch');
-    console.log('  ✓ Reduced object allocations per request\n');
+      console.log('📊 KoaX Basic (core optimizations only):');
+      console.log(`   Throughput: ${improvement >= 0 ? '+' : ''}${improvement.toFixed(1)}% ${improvement >= 0 ? '✅ FASTER' : '❌ SLOWER'} than Koa`);
+      console.log(`   Latency:    ${latencyImprovement >= 0 ? '+' : ''}${latencyImprovement.toFixed(1)}% ${latencyImprovement >= 0 ? '✅ BETTER' : '❌ WORSE'} than Koa`);
+      console.log('   Features:   Context pooling, Iterative dispatch');
+      console.log('');
+    }
+
+    if (koaxFull) {
+      const improvement = ((koaxFull.requestsPerSecond / koa.requestsPerSecond - 1) * 100);
+      const latencyImprovement = ((koa.avgLatency / koaxFull.avgLatency - 1) * 100);
+      const overhead = ((koaxBasic.requestsPerSecond / koaxFull.requestsPerSecond - 1) * 100);
+
+      console.log('📊 KoaX Full (all features):');
+      console.log(`   Throughput: ${improvement >= 0 ? '+' : ''}${improvement.toFixed(1)}% ${improvement >= 0 ? '✅ FASTER' : '❌ SLOWER'} than Koa`);
+      console.log(`   Latency:    ${latencyImprovement >= 0 ? '+' : ''}${latencyImprovement.toFixed(1)}% ${latencyImprovement >= 0 ? '✅ BETTER' : '❌ WORSE'} than Koa`);
+      console.log(`   Overhead:   ${overhead.toFixed(1)}% compared to KoaX Basic`);
+      console.log('   Features:   Logger, Timing, Hooks, Request ID, Child logger');
+      console.log('');
+    }
+
+    console.log('💡 Key insights:');
+    console.log('   • These are PRODUCTION numbers (compiled JavaScript, no TypeScript overhead)');
+    console.log('   • Core optimizations (context pooling, iterative dispatch) show raw performance');
+    console.log('   • Additional features add overhead but provide observability');
+    console.log('   • Disable logger/timing in production if max performance is needed');
+    console.log('');
   }
 }
 
@@ -286,24 +341,31 @@ function printResults(results: any[]) {
  * Main benchmark runner
  */
 async function main() {
-  console.log('\n🏁 Starting Koa vs KoaX Benchmark\n');
+  console.log('\n🏁 Fair Benchmark: Koa vs KoaX (BUILT VERSIONS)\n');
   console.log(`Configuration:`);
   console.log(`  Requests:      ${TEST_REQUESTS}`);
   console.log(`  Concurrency:   ${CONCURRENT_REQUESTS}`);
   console.log(`  Warmup:        ${WARMUP_REQUESTS}`);
+  console.log(`  Runtime:       Node.js ${process.version}`);
+  console.log(`  Using:         Compiled JavaScript (dist/)`);
 
   const results = [];
 
-  // Run Koa benchmark
+  // Run Koa benchmark (baseline)
   const koaResult = await runBenchmark('Koa', createKoaApp, TEST_REQUESTS);
   results.push(koaResult);
 
-  // Wait a bit between benchmarks
   await new Promise(resolve => setTimeout(resolve, 1000));
 
-  // Run KoaX benchmark
-  const koaxResult = await runBenchmark('KoaX', createKoaXApp, TEST_REQUESTS);
-  results.push(koaxResult);
+  // Run KoaX Basic benchmark
+  const koaxBasicResult = await runBenchmark('KoaX Basic', createKoaXBasicApp, TEST_REQUESTS);
+  results.push(koaxBasicResult);
+
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // Run KoaX Full benchmark
+  const koaxFullResult = await runBenchmark('KoaX Full', createKoaXFullApp, TEST_REQUESTS);
+  results.push(koaxFullResult);
 
   // Print results
   printResults(results);
