@@ -326,10 +326,23 @@ export class Router {
     const routerMiddleware = handler as RouterMiddleware;
     if (routerMiddleware.router) {
       // Nested router: merge routes from child router into this router
-      const childRouter = routerMiddleware.router;
-      for (const route of childRouter.routeList) {
-        const newPath = prefix ? prefix + route.pattern : route.pattern;
-        this.register(route.method, newPath, route.handler);
+      const childRouter = routerMiddleware.router as any;
+
+      // Support both KoaX Router (routeList) and @koa/router (stack)
+      if (childRouter.routeList) {
+        // KoaX Router
+        for (const route of childRouter.routeList) {
+          const newPath = prefix ? prefix + route.pattern : route.pattern;
+          this.register(route.method, newPath, route.handler);
+        }
+      } else if (childRouter.stack) {
+        // @koa/router - just pass through the middleware as-is
+        // We can't merge @koa/router routes because the structure is too different
+        // Instead, register the entire middleware
+        this.methods.forEach(method => {
+          const wildcardPath = prefix ? prefix + '(.*)' : '(.*)';
+          this.register(method, wildcardPath, handler);
+        });
       }
     } else {
       // Regular middleware: register as wildcard route
