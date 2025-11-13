@@ -57,6 +57,7 @@ interface RouterMiddleware extends Middleware {
 export class Router {
   public routeList: Route[] = [];
   private methods: string[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
+  private params: Record<string, Middleware> = {};
 
   /**
    * Register a GET route
@@ -273,8 +274,38 @@ export class Router {
           (ctx.request as any).params = ctx.params;
         }
 
-        // Execute the route handler
-        await route.handler(ctx, next);
+        // Execute param middleware for matched parameters
+        const paramMiddleware: Middleware[] = [];
+        if (ctx.params) {
+          for (const paramName of Object.keys(ctx.params)) {
+            if (router.params[paramName]) {
+              paramMiddleware.push(router.params[paramName]);
+            }
+          }
+        }
+
+        // Compose param middleware + route handler
+        if (paramMiddleware.length > 0) {
+          // Execute param middleware first, then route handler
+          const composed = async (ctx: KoaXContext, next: () => Promise<void>) => {
+            let index = -1;
+            const dispatch = async (i: number): Promise<void> => {
+              if (i <= index) throw new Error('next() called multiple times');
+              index = i;
+
+              if (i < paramMiddleware.length) {
+                await paramMiddleware[i](ctx, () => dispatch(i + 1));
+              } else {
+                await route.handler(ctx, next);
+              }
+            };
+            await dispatch(0);
+          };
+          await composed(ctx, next);
+        } else {
+          // No param middleware, execute handler directly
+          await route.handler(ctx, next);
+        }
         return;
       }
 
@@ -471,7 +502,45 @@ export class Router {
       newRouter.register(route.method, newPath, route.handler);
     }
 
+    // Copy param middleware
+    newRouter.params = { ...this.params };
+
     return newRouter;
+  }
+
+  /**
+   * Run middleware for named route parameters
+   * Useful for auto-loading or validation
+   *
+   * @param param - Parameter name
+   * @param middleware - Middleware to run when parameter is present
+   * @returns this for chaining
+   *
+   * @example
+   * ```typescript
+   * router.param('userId', async (value, ctx, next) => {
+   *   ctx.user = await User.findById(value);
+   *   if (!ctx.user) ctx.throw(404, 'User not found');
+   *   await next();
+   * });
+   *
+   * router.get('/users/:userId', async (ctx) => {
+   *   ctx.body = ctx.user; // Already loaded by param middleware
+   * });
+   * ```
+   */
+  param(param: string, middleware: (value: string, ctx: KoaXContext, next: () => Promise<void>) => Promise<void> | void): this {
+    // Store param middleware
+    this.params[param] = async (ctx: KoaXContext, next: () => Promise<void>) => {
+      const value = ctx.params?.[param];
+      if (value !== undefined) {
+        await middleware(value, ctx, next);
+      } else {
+        await next();
+      }
+    };
+
+    return this;
   }
 }
 
