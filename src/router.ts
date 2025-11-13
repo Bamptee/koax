@@ -132,6 +132,24 @@ export class Router {
   }
 
   /**
+   * Alias for delete() - because 'delete' is a reserved word
+   *
+   * @param path - Route path (supports :param syntax)
+   * @param handler - Route handler function
+   * @returns this for chaining
+   *
+   * @example
+   * ```typescript
+   * router.del('/users/:id', async (ctx) => {
+   *   ctx.body = { deleted: true };
+   * });
+   * ```
+   */
+  del(path: string, handler: Middleware): this {
+    return this.delete(path, handler);
+  }
+
+  /**
    * Register a PATCH route
    *
    * @param path - Route path (supports :param syntax)
