@@ -218,6 +218,9 @@ export class Router {
    */
   routes(): Middleware {
     return async (ctx: KoaXContext, next: () => Promise<void>) => {
+      // Reset params to avoid pollution from previous requests (context pooling)
+      ctx.params = undefined;
+
       // Try to match the request against registered routes
       for (const route of this.routeList) {
         // Check method
@@ -233,8 +236,9 @@ export class Router {
         }
 
         // Extract parameters
+        // IMPORTANT: Always create a new object to avoid polluting pooled contexts
         if (route.paramNames.length > 0) {
-          ctx.params = ctx.params || {};
+          ctx.params = {};
           route.paramNames.forEach((name, index) => {
             ctx.params![name] = match[index + 1];
           });
