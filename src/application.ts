@@ -4,6 +4,7 @@ import { Middleware, KoaXContext, KoaXOptions, HookFunction, ErrorHookFunction }
 import { ContextPool, Context } from './context';
 import { Logger, createLogger } from './logger';
 import { ServerTransport, serverTransports } from './server-transports';
+import { createCorsMiddleware, CorsOptions } from './cors';
 
 /**
  * KoaX Application
@@ -65,6 +66,12 @@ export class KoaXApplication extends EventEmitter {
 
     // Enable timing by default
     this.timingEnabled = options.timing ?? true;
+
+    // Initialize CORS if enabled
+    if (options.cors) {
+      const corsOptions: CorsOptions = options.cors === true ? {} : options.cors;
+      this.use(createCorsMiddleware(corsOptions));
+    }
   }
 
   /**

@@ -5,6 +5,7 @@ import { KoaXApplication } from './application';
 import { Logger } from './logger';
 import { Transport } from './transports';
 import { ServerTransport } from './server-transports';
+import { CorsOptions } from './cors';
 
 /**
  * Middleware function signature compatible with Koa
@@ -120,4 +121,5 @@ export interface KoaXOptions {
   };
   timing?: boolean; // Enable automatic request timing (default: true)
   serverTransport?: ServerTransport; // NEW: Custom server transport (HTTP, HTTP/2, uWebSockets, etc.)
+  cors?: boolean | CorsOptions; // Enable CORS (true = default config, object = custom config)
 }

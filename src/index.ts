@@ -20,6 +20,7 @@ export { KoaXRequest } from './request';
 export { KoaXResponse } from './response';
 export { Middleware, KoaXContext, KoaXOptions, HookFunction, ErrorHookFunction } from './types';
 export { Logger, LogLevel, LoggerOptions, createLogger, generateRequestId } from './logger';
+export { CorsOptions, createCorsMiddleware } from './cors';
 export {
   Transport,
   ConsoleTransport,
