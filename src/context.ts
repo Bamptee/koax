@@ -164,6 +164,10 @@ export class Context implements KoaXContext {
     return this.request.query;
   }
 
+  set query(val: Record<string, string>) {
+    this.request.query = val;
+  }
+
   get headers(): Record<string, string | string[] | undefined> {
     return this.request.headers;
   }

@@ -83,6 +83,22 @@ export class KoaXRequest {
   }
 
   /**
+   * Set query object (for Koa compatibility)
+   * Updates the cached query and reconstructs the URL
+   */
+  set query(obj: Record<string, string>) {
+    this._query = obj;
+
+    // Reconstruct URL with new query string
+    const parsed = parseUrl(this.url);
+    const queryString = Object.keys(obj)
+      .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(obj[key])}`)
+      .join('&');
+
+    this.url = parsed.pathname + (queryString ? '?' + queryString : '');
+  }
+
+  /**
    * Get request headers
    */
   get headers(): Record<string, string | string[] | undefined> {
